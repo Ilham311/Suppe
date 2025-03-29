@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdk 35
+    compileSdk 30
     defaultConfig {
         applicationId 'se.sopa.trustmenot'
-        minSdk 30
-        targetSdk 35
+        minSdk 29
+        targetSdk 30
         versionCode 1
         versionName '1.0'
     }
-        buildTypes {
+    buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -25,7 +25,6 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(11)
     }
 }
-
