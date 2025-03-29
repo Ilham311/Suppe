@@ -19,19 +19,15 @@ public class Main implements IXposedHookZygoteInit {
 
     private static final String SSL_CLASS_NAME = "com.android.org.conscrypt.TrustManagerImpl";
     private static final String CONSCRYPT_SOCKET_CLASS_NAME = "com.android.org.conscrypt.ConscryptFileDescriptorSocket";
+    private static final String OKHTTP_CLASS_NAME = "okhttp3.CertificatePinner";
+    private static final String APPMATTUS_CT_CLASS_NAME = "com.appmattus.certificatetransparency.internal.verifier.CertificateTransparencyInterceptor";
     private static final String SSL_METHOD_NAME = "checkTrustedRecursive";
     private static final String SOCKET_METHOD_NAME = "verifyCertificateChain";
+    private static final String OKHTTP_METHOD_NAME = "check";
+    private static final String APPMATTUS_CT_METHOD_NAME = "verifyCertificateChain";
+    private static final String RAW_CUSTOM_PINNED_METHOD_NAME = "checkCustomPinned";
     private static final Class<?> SSL_RETURN_TYPE = List.class;
     private static final Class<?> SSL_RETURN_PARAM_TYPE = X509Certificate.class;
-
-    private static final String OKHTTP_SSL_CLASS_NAME = "okhttp3.CertificatePinner";
-    private static final String OKHTTP_SSL_METHOD_NAME = "check";
-
-    private static final String APPMATTUS_CT_CLASS = "com.appmattus.certificatetransparency.internal.verifier.CertificateTransparencyInterceptor";
-    private static final String APPMATTUS_CT_METHOD = "verifyCertificateTransparency";
-
-    private static final String WEBVIEW_SSL_CLASS_NAME = "android.webkit.SslErrorHandler";
-    private static final String WEBVIEW_SSL_METHOD_NAME = "proceed";
 
     @Override
     public void initZygote(StartupParam startupParam) throws Throwable {
@@ -40,10 +36,9 @@ public class Main implements IXposedHookZygoteInit {
 
         hookedMethods += hookMethods(SSL_CLASS_NAME, SSL_METHOD_NAME, this::checkSSLMethod);
         hookedMethods += hookMethods(CONSCRYPT_SOCKET_CLASS_NAME, SOCKET_METHOD_NAME, method -> method.getName().equals(SOCKET_METHOD_NAME));
-
-        hookedMethods += hookOkHttpCertificatePinner();
-        hookedMethods += hookAppmattusCT();
-        hookedMethods += hookWebViewSslHandler();
+        hookedMethods += hookMethods(OKHTTP_CLASS_NAME, OKHTTP_METHOD_NAME, method -> method.getName().equals(OKHTTP_METHOD_NAME));
+        hookedMethods += hookMethods(APPMATTUS_CT_CLASS_NAME, APPMATTUS_CT_METHOD_NAME, method -> method.getName().equals(APPMATTUS_CT_METHOD_NAME));
+        hookedMethods += hookMethods(RAW_CUSTOM_PINNED_METHOD_NAME, RAW_CUSTOM_PINNED_METHOD_NAME, method -> method.getName().equals(RAW_CUSTOM_PINNED_METHOD_NAME));
 
         XposedBridge.log(String.format(Locale.ENGLISH, "Suppe loaded! Hooked %d methods", hookedMethods));
     }
@@ -71,60 +66,6 @@ public class Main implements IXposedHookZygoteInit {
             }
         } catch (Throwable t) {
             XposedBridge.log("Failed to hook methods for class: " + className);
-            XposedBridge.log(t);
-        }
-        return count;
-    }
-
-    private int hookOkHttpCertificatePinner() {
-        int count = 0;
-        try {
-            findAndHookMethod(OKHTTP_SSL_CLASS_NAME, null, OKHTTP_SSL_METHOD_NAME, String.class, List.class, new XC_MethodReplacement() {
-                @Override
-                protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
-                    XposedBridge.log("Bypassing OkHttp Certificate Pinner");
-                    return null;
-                }
-            });
-            count++;
-        } catch (Throwable t) {
-            XposedBridge.log("Failed to hook OkHttp CertificatePinner");
-            XposedBridge.log(t);
-        }
-        return count;
-    }
-
-    private int hookAppmattusCT() {
-        int count = 0;
-        try {
-            findAndHookMethod(APPMATTUS_CT_CLASS, null, APPMATTUS_CT_METHOD, X509Certificate[].class, String.class, new XC_MethodReplacement() {
-                @Override
-                protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
-                    XposedBridge.log("Bypassing Appmattus Certificate Transparency");
-                    return null;
-                }
-            });
-            count++;
-        } catch (Throwable t) {
-            XposedBridge.log("Failed to hook Appmattus Certificate Transparency");
-            XposedBridge.log(t);
-        }
-        return count;
-    }
-
-    private int hookWebViewSslHandler() {
-        int count = 0;
-        try {
-            findAndHookMethod(WEBVIEW_SSL_CLASS_NAME, null, WEBVIEW_SSL_METHOD_NAME, new XC_MethodReplacement() {
-                @Override
-                protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
-                    XposedBridge.log("Bypassing WebView SSL Pinning");
-                    return null;
-                }
-            });
-            count++;
-        } catch (Throwable t) {
-            XposedBridge.log("Failed to hook WebView SslErrorHandler");
             XposedBridge.log(t);
         }
         return count;
